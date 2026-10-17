@@ -2,6 +2,21 @@
 -- Keep internal IDs, commands and saved values out of translated UI text.
 local _, addon = ...
 local terms = {
+    ["TOOLS_CLASS_TRAINER"] = { enUS = "Tools > ClassTrainer", deDE = "Werkzeuge > Klassenlehrer" },
+    ["CLASS_TRAINER"] = { enUS = "ClassTrainer", deDE = "Klassenlehrer" },
+    ["CLASS_TRAINER_DESCRIPTION"] = {
+        enUS = "Shows spells and their costs from your class trainer in the spellbook.",
+        deDE = "Zeigt Zauber und ihre Kosten beim Klassenlehrer im Zauberbuch." },
+    ["CLASS_TRAINER_VISIT"] = {
+        enUS = "Visit a class trainer to save the available spells and their costs.",
+        deDE = "Besuche einen Klassenlehrer, um die angebotenen Zauber und ihre Kosten zu speichern." },
+    ["CLASS_TRAINER_EMPTY"] = { enUS = "No trainer spells saved.", deDE = "Keine Lehrerzauber gespeichert." },
+    ["CLASS_TRAINER_LEVEL"] = { enUS = "Requires level %d", deDE = "Benötigt Stufe %d" },
+    ["CLASS_TRAINER_COST"] = { enUS = "Cost:", deDE = "Kosten:" },
+    ["CLASS_TRAINER_LEARNED"] = { enUS = "Already learned", deDE = "Bereits erlernt" },
+    ["CLASS_TRAINER_AVAILABLE"] = { enUS = "Available", deDE = "Verfügbar" },
+    ["CLASS_TRAINER_UNAVAILABLE"] = { enUS = "Requirements not met", deDE = "Voraussetzungen nicht erfüllt" },
+    ["CLASS_TRAINER_SNAPSHOT"] = { enUS = "Last trainer visited: %s.\nCosts reflect that visit.", deDE = "Zuletzt besuchter Lehrer: %s.\nKosten entsprechen diesem Besuch." },
     ["TOOLTIP_QUEST_IDS"] = { enUS = "Tooltip > Quest IDs", deDE = "Tooltip > Quest-IDs" },
     ["TOOLTIP_QUEST_IDS_DESCRIPTION"] = { enUS = "Shows quest IDs in quest tooltips.", deDE = "Zeigt Quest-IDs in Quest-Tooltips." },
     ["QUEST_ID"] = { enUS = "Quest ID:", deDE = "Quest-ID:" },

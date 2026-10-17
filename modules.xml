@@ -9,6 +9,7 @@
 	<Script file="Modules\CastOnKeyRelease.lua"/>
 	<Script file="Modules\CharacterStats.lua"/>
 	<Script file="Modules\CharacterInfoPanel.lua"/>
+	<Script file="Modules\ClassTrainer.lua"/>
 	<Script file="Modules\ChatArrowKeys.lua"/>
 	<Script file="Modules\CopyChat.lua"/>
 	<Script file="Modules\CopyLinks.lua"/>

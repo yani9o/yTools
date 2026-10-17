@@ -663,6 +663,9 @@ local function CreateCopyFrame()
         "DIALOG"
     )
 
+    -- Block clicks throughout the window, including areas below short chat logs.
+    copyFrame:EnableMouse(true)
+
     copyFrame:SetClampedToScreen(
         true
     )
@@ -773,9 +776,11 @@ local function CreateCopyFrame()
         COPY_BOTTOM
     )
 
-    copyScrollFrame:EnableMouse(
-        false
-    )
+    copyScrollFrame:EnableMouse(true)
+    copyScrollFrame:EnableMouseWheel(true)
+    copyScrollFrame:SetScript("OnMouseDown", function()
+        if copyEditBox then copyEditBox:SetFocus() end
+    end)
 
 
     --------------------------------------------------------
@@ -946,6 +951,13 @@ local function CreateCopyFrame()
             )
         end
     )
+
+
+    --------------------------------------------------------
+    -- Wheel scrolling also works over the empty part of the content area.
+    --------------------------------------------------------
+
+    copyScrollFrame:SetScript("OnMouseWheel", copyEditBox:GetScript("OnMouseWheel"))
 
 
     --------------------------------------------------------
