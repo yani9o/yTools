@@ -552,6 +552,7 @@ function yTools:CreateOptionsPanel()
         { id = "BagSlots", title = L.BAG_SLOTS_OPTIONS },
         { id = "CharacterStats", title = L.CHARACTERSTATS_OPTIONS },
         { id = "Macro", title = L.MACRO_MANAGER },
+        { id = "Notepad", title = L.NOTEPAD },
         { id = "PlayerBorder", title = L.PLAYER_BORDER },
         { id = "TooltipTargetTarget", title = L.TARGET_TARGET_OPTIONS },
         { id = "Fishing", title = L.FISHING_OPTIONS },

@@ -142,6 +142,8 @@ local terms = {
         enUS = "Adds a movable notepad button. Separate tabs for Account and Character. Changes are saved automatically.",
         deDE = "Zeigt eine verschiebbare Notizen-Schaltfläche. Separate Tabs für Account und Charakter. Änderungen werden automatisch gespeichert.",
     },
+    ["ENABLE_NOTEPAD"] = { enUS = "Enable notepad", deDE = "Notizen aktivieren" },
+    ["NOTEPAD_SHOW_MINIMAP_BUTTON"] = { enUS = "Show minimap button", deDE = "Minikarten-Schaltfläche anzeigen" },
     ["NOTEPAD_ACCOUNT"] = {
         enUS = "Account",
         deDE = "Account",
