@@ -2,7 +2,7 @@
 -- Keep internal IDs, commands and saved values out of translated UI text.
 local _, addon = ...
 local terms = {
-    ["TOOLS_CLASS_TRAINER"] = { enUS = "Tools > ClassTrainer", deDE = "Werkzeuge > Klassenlehrer" },
+    ["TOOLS_CLASS_TRAINER"] = { enUS = "Utility > ClassTrainer", deDE = "Werkzeuge > Klassenlehrer" },
     ["CLASS_TRAINER"] = { enUS = "ClassTrainer", deDE = "Klassenlehrer" },
     ["CLASS_TRAINER_DESCRIPTION"] = {
         enUS = "Shows spells and their costs from your class trainer in the spellbook.",

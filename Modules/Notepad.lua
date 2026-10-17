@@ -5,6 +5,7 @@ local module = yTools:RegisterModule("Notepad", {
     title = L.UTILITY_NOTEPAD,
     description = L.NOTEPAD_DESCRIPTION,
     defaultEnabled = true,
+    defaults = { showMinimapButton = true },
 })
 
 local button, frame, editBox, scrollFrame, measureText, scrollBar, scrollContent
@@ -461,15 +462,59 @@ local function CreateButton()
     end)
 end
 
+function module:UpdateButtonVisibility()
+    if button then button:SetShown(self:IsEnabled() and self:GetDB().showMinimapButton ~= false) end
+end
+
 function module:OnEnable()
     CreateButton()
-    button:Show()
+    self:UpdateButtonVisibility()
     if frame then frame:Hide() end
 end
 
 function module:OnDisable()
     if frame then frame:Hide() end
     if button then button:Hide() end
+end
+
+function module:CreateOptionsPanel(parentCategory)
+    if self.settingsPanel or not parentCategory or not Settings
+        or not Settings.RegisterCanvasLayoutSubcategory then return end
+    local panel = CreateFrame("Frame")
+    panel:Hide()
+    panel:SetSize(700, 560)
+    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 32, -24)
+    title:SetText(L.NOTEPAD)
+    local function Check(label, y)
+        local check = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+        yTools.UI.Check(check)
+        check:SetPoint("TOPLEFT", 32, y)
+        local text = check:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        text:SetPoint("LEFT", check, "RIGHT", 5, 0)
+        text:SetText(label)
+        return check
+    end
+    local enabled = Check(L.ENABLE_NOTEPAD, -70)
+    local showButton = Check(L.NOTEPAD_SHOW_MINIMAP_BUTTON, -110)
+    local function Update()
+        enabled:SetChecked(self:IsEnabled())
+        showButton:SetChecked(self:GetDB().showMinimapButton ~= false)
+        showButton:SetEnabled(self:IsEnabled())
+    end
+    enabled:SetScript("OnClick", function(check)
+        if check:GetChecked() then self:Enable() else self:Disable() end
+        Update()
+    end)
+    showButton:SetScript("OnClick", function(check)
+        self:GetDB().showMinimapButton = check:GetChecked() == true
+        self:UpdateButtonVisibility()
+    end)
+    panel:SetScript("OnShow", Update)
+    panel.RefreshForm = Update
+    self.settingsPanel = panel
+    self.settingsCategory = Settings.RegisterCanvasLayoutSubcategory(parentCategory, panel, L.NOTEPAD)
+    Update()
 end
 
 module:RegisterSlashCommand("notepad", function(_, arguments)
