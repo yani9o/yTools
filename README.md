@@ -4,7 +4,7 @@
 
 Collection of QoL Modules for WoW Forever.
 
-<img width="692" height="556" alt="image" src="https://github.com/user-attachments/assets/2e1feb7b-28bb-4d93-86b2-28f6914989ee" />
+<img width="688" height="549" alt="image" src="https://github.com/user-attachments/assets/58661328-0fca-4cf1-bb9f-61742a6d8328" />
 
 Complete List of current Modules (can be individually de-/activated - explanations are in mainmenu):
 
@@ -31,6 +31,7 @@ Chat
 - CopyLinks
 
 Tools
+- Class Teacher Spells
 - Macro-Generator (personal, probably no use to you...)
 - Notepad
 
@@ -38,6 +39,7 @@ Tooltips
 - ItemLevel
 - ItemCount
 - ItemID
+- QuestID (incl. Questwindows, etc.)
 - SpellID
 - TargetTarget
 - UnitID
