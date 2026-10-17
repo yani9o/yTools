@@ -2,6 +2,7 @@ local L = _G.yTools.L
 local yTools = _G.yTools
 
 local pending = false
+local originalAlpha = setmetatable({}, {__mode = "k"})
 local combatEvents = CreateFrame("Frame")
 combatEvents:RegisterEvent("PLAYER_REGEN_ENABLED")
 
@@ -20,6 +21,11 @@ local module = yTools:RegisterModule(
 ------------------------------------------------------------
 
 local function ShowBuffButton()
+    local button = BuffFrame and BuffFrame.CollapseAndExpandButton
+    if button and originalAlpha[button] ~= nil then
+        button:SetAlpha(originalAlpha[button])
+        originalAlpha[button] = nil
+    end
     if InCombatLockdown() then pending = true; return end
     pending = false
     local buffButton =
@@ -39,8 +45,6 @@ end
 local hooked = setmetatable({}, {__mode = "k"})
 
 local function HideBuffButton()
-    if InCombatLockdown() then pending = true; return end
-    pending = false
     if not module:IsEnabled() then
         return
     end
@@ -57,14 +61,25 @@ local function HideBuffButton()
         hooked[buffButton] = true
         -- Blizzard also uses SetShown; hooking only Show misses that path.
         buffButton:HookScript("OnShow", function(self)
-            if module:IsEnabled() and not InCombatLockdown() then
-                self:Hide()
-            elseif module:IsEnabled() then
-                pending = true
+            if module:IsEnabled() then
+                self:SetAlpha(0)
+                if InCombatLockdown() then
+                    pending = true
+                else
+                    self:Hide()
+                end
             end
         end)
     end
 
+    -- Aura updates can show this protected button in combat. Alpha can be
+    -- changed without changing protected visibility; defer only Hide/Show.
+    if originalAlpha[buffButton] == nil then
+        originalAlpha[buffButton] = buffButton:GetAlpha()
+    end
+    buffButton:SetAlpha(0)
+    if InCombatLockdown() then pending = true; return end
+    pending = false
     buffButton:Hide()
 end
 
