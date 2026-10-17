@@ -4,7 +4,7 @@
 
 Collection of QoL Modules for WoW Forever.
 
-<img width="689" height="550" alt="image" src="https://github.com/user-attachments/assets/a4ac5efa-6dcf-41b1-86b1-e40387e77a25" />
+<img width="686" height="547" alt="image" src="https://github.com/user-attachments/assets/77b111cc-4fca-492c-8409-ce18a40beddc" />
 
 Complete List of current Modules (can be individually de-/activated - explanations are in mainmenu):
 
