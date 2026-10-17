@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: |cff4b7dccy|cffffffffTools|r
+## Notes: Collection of quality-of-life features. /yTools
+## Notes-deDE: Sammlung praktischer Komfortfunktionen. /yTools
+## Author: yani9o
+## Version: 1.0
+## AddonCompartmentFunc: yTools_OnAddonCompartmentClick
+## SavedVariables: yToolsDB, yToolsNotepadAccountDB
+## SavedVariablesPerCharacter: yToolsNotepadDB, yToolsCharacterStatsDB
+## IconTexture: Interface\icons\inv_blacksmithing_toolbox_01
+
+localization.lua
+yTools.lua
+UI.lua
+Options.lua
+modules.xml
