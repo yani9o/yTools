@@ -216,7 +216,9 @@ function module:CreateOptionsPanel(parentCategory)
     panel.enable = enabled
     local enableLabel = enabled:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     enableLabel:SetPoint("LEFT", enabled, "RIGHT", 2, 0)
-    enableLabel:SetText(L.ENABLE_TARGET_TARGET)
+    enableLabel:SetText(L.MODULE_OPTIONS_ENABLE)
+    enableLabel:ClearAllPoints(); enableLabel:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -32, -22)
+    enabled:ClearAllPoints(); enabled:SetPoint("RIGHT", enableLabel, "LEFT", -5, 0)
     enabled:SetScript("OnClick", function(owner)
         if owner:GetChecked() then self:Enable() else self:Disable() end
         panel.RefreshForm()

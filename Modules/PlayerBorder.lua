@@ -447,7 +447,9 @@ function module:CreateOptionsPanel(parentCategory)
     enable:SetPoint("TOPLEFT", 400, -18)
     local enableLabel = enable:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     enableLabel:SetPoint("LEFT", enable, "RIGHT", 2, 0)
-    enableLabel:SetText(L.ENABLE_PLAYER_BORDER)
+    enableLabel:SetText(L.MODULE_OPTIONS_ENABLE)
+    enableLabel:ClearAllPoints(); enableLabel:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -32, -22)
+    enable:ClearAllPoints(); enable:SetPoint("RIGHT", enableLabel, "LEFT", -5, 0)
     panel.enable = enable
 
     local controls = CreateFrame("Frame", nil, panel)

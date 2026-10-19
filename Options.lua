@@ -549,6 +549,8 @@ function yTools:CreateOptionsPanel()
 
     self.optionsCategory = optionsCategory
     local optionPages = {
+        { id = "CastBars", title = L.CASTBARS_OPTIONS },
+        { id = "TooltipVendorPrice", title = L.TOOLTIP_VENDOR_PRICE },
         { id = "BagSlots", title = L.BAG_SLOTS_OPTIONS },
         { id = "CharacterStats", title = L.CHARACTERSTATS_OPTIONS },
         { id = "Macro", title = L.MACRO_MANAGER },

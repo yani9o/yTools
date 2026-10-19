@@ -372,6 +372,13 @@ local function CompactWindow()
     HideControl(book.SettingsDropdown)
     HideControl(book.SettingsTopFaceIcon)
     HideControl(parent.MaximizeMinimizeButton)
+    -- Keep the visible top-left fixed regardless of the native window's anchor.
+    local scale = parent:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    local left, top = parent:GetLeft(), parent:GetTop()
+    if left and top then
+        parent:ClearAllPoints()
+        parent:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left * scale, top * scale)
+    end
     parent:SetSize(338, 486)
     book:SetSize(332, 468)
 end

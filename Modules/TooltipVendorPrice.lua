@@ -1,8 +1,10 @@
-local L = _G.yTools.L
+local yTools = _G.yTools
+local L = yTools.L
 local module = _G.yTools:RegisterModule("TooltipVendorPrice", {
     title = L.TOOLTIP_VENDOR_PRICE,
-    description = L.SHOWS_THE_VENDOR_PRICE_PER_ITEM_HOLD_SHIFT_TO_SHOW_THE_PRICE_OF_THE_WHOLE_STACK,
+    description = L.VENDOR_PRICE_DESCRIPTION,
     defaultEnabled = true,
+    defaults = { display = "single", modifier = "SHIFT" },
 })
 
 local installed = false
@@ -189,7 +191,13 @@ local function OnSellPrice(tooltip, line)
     -- Keep Blizzard's comparison tooltips and restricted prices untouched.
     if IsComparisonTooltip(tooltip) then return end
     tooltips[tooltip] = true
-    if IsShiftKeyDown() or not PublicNumber(line.price) or line.price <= 0
+    local db = module:GetDB()
+    local modifierDown = (db.modifier == "CTRL" and IsControlKeyDown())
+        or (db.modifier == "ALT" and IsAltKeyDown())
+        or (db.modifier == "SHIFT" and IsShiftKeyDown())
+    local showSingle = db.display ~= "stack"
+    if modifierDown then showSingle = not showSingle end
+    if not showSingle or not PublicNumber(line.price) or line.price <= 0
         or IsSecret(line.maxPrice) then
         return
     end
@@ -260,8 +268,59 @@ function module:OnDisable()
 end
 
 module:RegisterEvent("MODIFIER_STATE_CHANGED", function(_, _, key)
-    if not IsSecret(key) and (key == "LSHIFT" or key == "RSHIFT") then
+    if not IsSecret(key) and (key == "LSHIFT" or key == "RSHIFT" or key == "LCTRL" or key == "RCTRL" or key == "LALT" or key == "RALT") then
         QueueRefreshTooltips()
     end
 end)
 
+
+function module:CreateOptionsPanel(parentCategory)
+    if self.settingsPanel or not parentCategory then return end
+    local panel = CreateFrame("Frame")
+    panel:Hide(); panel:SetSize(700, 560)
+    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 32, -24); title:SetText(L.TOOLTIP_VENDOR_PRICE)
+    local details = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    details:SetPoint("TOPLEFT", 32, -64); details:SetWidth(600); details:SetJustifyH("LEFT")
+    details:SetText(L.VENDOR_PRICE_DESCRIPTION)
+    local enabled = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    yTools.UI.Check(enabled)
+    enabled:SetPoint("TOPLEFT", 400, -18)
+    local enabledLabel = enabled:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    enabledLabel:SetPoint("LEFT", enabled, "RIGHT", 5, 0); enabledLabel:SetText(L.MODULE_OPTIONS_ENABLE)
+    enabledLabel:ClearAllPoints(); enabledLabel:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -32, -22)
+    enabled:ClearAllPoints(); enabled:SetPoint("RIGHT", enabledLabel, "LEFT", -5, 0)
+    enabled:SetScript("OnClick", function(button)
+        if button:GetChecked() then module:Enable() else module:Disable() end
+        panel.RefreshForm()
+    end)
+    local dropdowns = {}
+    local function Dropdown(label, key, values, y)
+        local text = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetPoint("TOPLEFT", 32, y); text:SetText(label)
+        local button = CreateFrame("DropdownButton", nil, panel, "WowStyle1DropdownTemplate")
+        button:SetPoint("TOPLEFT", 32, y-22); button:SetWidth(220)
+        yTools.UI.DropdownLayout(button)
+        local function Refresh()
+            for _, value in ipairs(values) do
+                if module:GetDB()[key] == value[1] then yTools.UI.DropdownLabel(button, value[2]) end
+            end
+        end
+        button:SetupMenu(function(_, root)
+            for _, entry in ipairs(values) do
+                local value, name = entry[1], entry[2]
+                root:CreateRadio(name, function() return module:GetDB()[key] == value end, function()
+                    module:GetDB()[key] = value
+                    Refresh(); QueueRefreshTooltips()
+                end)
+            end
+        end)
+        dropdowns[#dropdowns+1] = function() Refresh(); button:SetEnabled(module:IsEnabled()) end
+    end
+    Dropdown(L.VENDOR_PRICE_DEFAULT, "display", {{"single", L.VENDOR_PRICE_SINGLE}, {"stack", L.VENDOR_PRICE_STACK}}, -140)
+    Dropdown(L.VENDOR_PRICE_MODIFIER, "modifier", {{"SHIFT", SHIFT_KEY}, {"CTRL", CTRL_KEY}, {"ALT", ALT_KEY}}, -214)
+    panel.RefreshForm = function() enabled:SetChecked(module:IsEnabled()); for _, refresh in ipairs(dropdowns) do refresh() end end
+    panel:SetScript("OnShow", panel.RefreshForm)
+    self.settingsPanel = panel
+    self.settingsCategory = Settings.RegisterCanvasLayoutSubcategory(parentCategory, panel, L.TOOLTIP_VENDOR_PRICE)
+end

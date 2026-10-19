@@ -245,12 +245,12 @@ local terms = {
         deDE = "Die Einstellungs-API ist nicht verfügbar.",
     },
     ["UI_FRAMERATE"] = {
-        enUS = "UI > Framerate",
-        deDE = "UI > Framerate",
+        enUS = "UI > Framerate     /ytools framerate",
+        deDE = "UI > Framerate     /ytools framerate",
     },
     ["REPOSITION_FRAMERATE_TO_TOP_LEFT"] = {
-        enUS = "Reposition Framerate to Top-Left.",
-        deDE = "Verschiebt die Framerate-Anzeige nach oben links.",
+        enUS = "Makes the framerate indicator movable and remembers its position.",
+        deDE = "Macht die Framerate-Anzeige verschiebbar und speichert ihre Position.",
     },
     ["AURAS_HIDE_BUFF_LIST_BUTTON"] = {
         enUS = "Auras > Hide Buff List Button",
@@ -725,8 +725,8 @@ local terms = {
         deDE = "Repariert Ausrüstung automatisch beim Besuch eines Händlers.",
     },
     ["UNITFRAMES_CAST_BAR_POSITIONS"] = {
-        enUS = "Unitframes > Cast Bar Positions",
-        deDE = "Einheitenfenster > Zauberleistenpositionen",
+        enUS = "Unitframes > Cast Bar Positions     /ytools castbars",
+        deDE = "Einheitenfenster > Zauberleistenpositionen     /ytools castbars",
     },
     ["LOCKS_THE_TARGET_AND_FOCUS_CAST_BARS_TO_CUSTOM_POSITIONS"] = {
         enUS = "Locks the Target, and Focus cast bars to custom positions.",
@@ -896,6 +896,23 @@ local terms = {
         enUS = "Enabled: display the full character name. Disabled: display only the first name.",
         deDE = "Aktiviert: Zeigt den vollständigen Charakternamen. Deaktiviert: Zeigt nur den Vornamen.",
     },
+    ["FRAMERATE_RESET_DONE"] = { enUS = "Framerate position reset.", deDE = "Framerate-Position zurückgesetzt." },
+    ["FRAMERATE_LOCK_HELP"] = { enUS = "/ytools framerate lock -> Lock/unlock dragging.", deDE = "/ytools framerate lock -> Verschieben sperren/entsperren." },
+    ["FRAMERATE_LOCKED"] = { enUS = "Framerate position locked.", deDE = "Framerate-Position gesperrt." },
+    ["FRAMERATE_UNLOCKED"] = { enUS = "Framerate position unlocked.", deDE = "Framerate-Position entsperrt." },
+    ["FRAMERATE_TOGGLE_HELP"] = { enUS = "/ytools framerate toggle -> Toggle the framerate indicator.", deDE = "/ytools framerate toggle -> Framerate-Anzeige ein-/ausblenden." },
+    ["FRAMERATE_RESET_HELP"] = { enUS = "/ytools framerate reset -> Reset position to the top left.", deDE = "/ytools framerate reset -> Position oben links zurücksetzen." },
+    ["FRAMERATE_COMMAND_HELP"] = { enUS = "/ytools framerate -> Show framerate command help.", deDE = "/ytools framerate -> Hilfe zu den Framerate-Befehlen anzeigen." },
+    ["VENDOR_PRICE_DESCRIPTION"] = { enUS = "Shows the vendor price per item or stack. A configurable modifier switches between both displays.", deDE = "Zeigt den Händlerpreis pro Gegenstand oder Stapel. Eine einstellbare Zusatztaste wechselt zwischen beiden Anzeigen." },
+    ["VENDOR_PRICE_DEFAULT"] = { enUS = "Default price display", deDE = "Standard-Preisanzeige" },
+    ["VENDOR_PRICE_SINGLE"] = { enUS = "Single item", deDE = "Einzelner Gegenstand" },
+    ["VENDOR_PRICE_STACK"] = { enUS = "Whole stack", deDE = "Ganzer Stapel" },
+    ["VENDOR_PRICE_MODIFIER"] = { enUS = "Modifier for the other price display", deDE = "Zusatztaste für die andere Preisanzeige" },
+    ["CASTBARS_OPTIONS"] = { enUS = "Castbars", deDE = "Zauberleisten" },
+    ["MODULE_OPTIONS_ENABLE"] = { enUS = "Enable", deDE = "Aktivieren" },
+    ["CASTBARS_TARGET_Y"] = { enUS = "Target castbar: Y offset from screen center", deDE = "Ziel-Zauberleiste: Y-Abstand zur Bildschirmmitte" },
+    ["CASTBARS_FOCUS_Y"] = { enUS = "Focus castbar: Y offset above target castbar", deDE = "Fokus-Zauberleiste: Y-Abstand über der Ziel-Zauberleiste" },
+    ["CASTBARS_COMMAND_HELP"] = { enUS = "/ytools castbars -> Open castbar options.", deDE = "/ytools castbars -> Optionen der Zauberleisten öffnen." },
 }
 
 local locale = GetLocale() == "deDE" and "deDE" or "enUS"
