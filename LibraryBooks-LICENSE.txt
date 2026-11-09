@@ -1,0 +1,43 @@
+Library Books data attribution
+
+Book IDs, quest IDs, location records and English/German location hints adapted
+from Archivist for Forever 1.0.13 by Sanscrit, released November 5, 2026.
+https://www.curseforge.com/wow/addons/archivist-for-forever
+https://www.curseforge.com/wow/addons/archivist-for-forever/files/9462982
+https://www.curseforge.com/wow/addons/archivist-for-forever/license
+
+Changes: normalized records into yTools' own data format; retained 38 trackable
+books, alternate pickup locations and cave entrance hints. No custom artwork
+or interface code is included from Archivist.
+
+Upstream book/quest data credits sixtyforever.com/data/books.json, CC BY 4.0:
+https://sixtyforever.com/data/books.json
+https://creativecommons.org/licenses/by/4.0/
+Locations and access reports credited upstream to Method's Forever guide and
+Wowhead community reports. These are reported locations, not independent
+in-game verification by yTools.
+https://www.method.gg/wow-forever/wow-forever-all-library-books-locations-and-rewards
+https://www.wowhead.com/forever/item=277203/scholarly-pendant#comments
+
+The following license is reproduced from the Archivist project license page:
+
+The MIT License
+Copyright (c) <year> <copyright holders>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to
+do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

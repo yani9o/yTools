@@ -168,6 +168,45 @@ end
 -- Silver appearance
 ------------------------------------------------------------
 
+local function UpdatePetSilverAppearance(isSilver)
+    local pet = _G.PetFrame
+    if not pet then return end
+
+    local function Apply(texture)
+        if texture and texture.SetDesaturated then
+            texture:SetDesaturated(isSilver)
+        end
+    end
+
+    Apply(_G.PetFrameTexture)
+    Apply(pet.FrameTexture)
+    local container = pet.PetFrameContainer
+    Apply(container and container.FrameTexture)
+
+    -- Some clients put the border atlas on an unnamed region.
+    local function Scan(frame, depth)
+        for _, region in ipairs({frame:GetRegions()}) do
+            if region.GetAtlas and region.SetDesaturated then
+                local atlas = region:GetAtlas()
+                -- Native pet-frame regions can expose protected atlas names
+                -- during world entry/combat. Never inspect those strings.
+                if not (issecretvalue and issecretvalue(atlas)) and type(atlas) == "string" then
+                    atlas = atlas:lower()
+                    if atlas:find("unitframe-pet-", 1, true)
+                        and (atlas:find("portraiton", 1, true) or atlas:find("border", 1, true))
+                        and not atlas:find("mask", 1, true) and not atlas:find("flash", 1, true) then
+                        Apply(region)
+                    end
+                end
+            end
+        end
+        if depth > 0 then
+            for _, child in ipairs({frame:GetChildren()}) do Scan(child, depth - 1) end
+        end
+    end
+    Scan(pet, 2)
+end
+
 local function UpdateSilverAppearance(style)
     local frameTexture =
         _G.PlayerFrame
@@ -189,6 +228,8 @@ local function UpdateSilverAppearance(style)
     local isSilver =
         style == 1
         or style == 3
+
+    UpdatePetSilverAppearance(isSilver)
 
     if frameTexture then
         frameTexture:SetDesaturated(isSilver)
@@ -488,6 +529,7 @@ function module:CreateOptionsPanel(parentCategory)
     end)
     panel:SetScript("OnShow", RefreshForm)
     settingsCategory = Settings.RegisterCanvasLayoutSubcategory(parentCategory, panel, L.PLAYER_BORDER)
+    self.settingsCategory = settingsCategory
     RefreshForm()
 end
 
@@ -495,7 +537,7 @@ function module:OpenOptionsPanel()
     yTools:CreateOptionsPanel()
     self:CreateOptionsPanel(yTools.optionsCategory)
     if settingsCategory and Settings.OpenToCategory then
-        Settings.OpenToCategory(settingsCategory:GetID())
+        yTools:OpenSettingsCategory(settingsCategory:GetID())
     end
 end
 
@@ -543,6 +585,14 @@ module:RegisterEvent(
         SetupChain()
     end
 )
+
+
+module:RegisterEvent("UNIT_PET", function(_, _, unit)
+    if unit == "player" then
+        local style = GetCurrentStyle()
+        UpdatePetSilverAppearance(style == 1 or style == 3)
+    end
+end)
 
 
 ------------------------------------------------------------

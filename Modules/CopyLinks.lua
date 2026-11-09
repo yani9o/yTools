@@ -6,10 +6,10 @@ local module = yTools:RegisterModule("CopyLinks", {
     defaultEnabled = true,
 })
 
-local PREFIX = "ytoolsurl:"
-local hookedFrames = setmetatable({}, { __mode = "k" })
+local PREFIX = "addon:ytoolsurl:"
+local LEGACY_PREFIX = "ytoolsurl:"
 local installedFilters = {}
-local installedWindowHooks = {}
+local linkHandlerInstalled
 local copyFrame, editBox
 
 local function IsSecret(value)
@@ -89,7 +89,8 @@ local function Linkify(text)
             finish = textureEnd
         end
         if not finish then result[#result + 1] = text:sub(start); break end
-        result[#result + 1] = text:sub(start, finish)
+        local markup = text:sub(start, finish)
+        result[#result + 1] = (markup:gsub("^|H" .. LEGACY_PREFIX .. "(%x+)|h", "|H" .. PREFIX .. "%1|h"))
         cursor = finish + 1
     end
     return table.concat(result)
@@ -97,9 +98,11 @@ end
 
 local function RemoveLinks(text)
     if IsSecret(text) or type(text) ~= "string" then return text end
-    return (text:gsub("|H(ytoolsurl:%x+)|h.-|h", function(link)
-        return Decode(link) or ("|H" .. link .. "|h|h")
-    end))
+    local function Unwrap(markup, encoded)
+        return Decode(PREFIX .. encoded) or markup
+    end
+    text = text:gsub("(|H" .. PREFIX .. "(%x+)|h.-|h)", Unwrap)
+    return (text:gsub("(|H" .. LEGACY_PREFIX .. "(%x+)|h.-|h)", Unwrap))
 end
 
 local function CreateCopyFrame()
@@ -187,21 +190,10 @@ function module:ShowLink(url)
     ShowLink(url)
 end
 
-local function HookFrame(frame)
-    if not frame or frame == _G.ChatFrame2 or frame == _G.CombatLogChatFrame
-        or hookedFrames[frame] or (frame.IsForbidden and frame:IsForbidden()) then return end
-    hookedFrames[frame] = true
-    local original = frame:GetScript("OnHyperlinkClick")
-    frame:SetScript("OnHyperlinkClick", function(self, link, text, button, ...)
-        if not IsSecret(link) and type(link) == "string" and link:sub(1, #PREFIX) == PREFIX then
-            if module:IsEnabled() and button == "LeftButton" then
-                local url = Decode(link)
-                if url then ShowLink(url) end
-            end
-            return
-        end
-        if original then return original(self, link, text, button, ...) end
-    end)
+local function OnLinkClick(link, _, button)
+    if button ~= "LeftButton" or not module:IsEnabled() then return end
+    local url = Decode(link)
+    if url then ShowLink(url) end
 end
 
 local function ForEachChatFrame(callback)
@@ -226,6 +218,19 @@ local function Filter(_, _, message, ...)
 end
 
 local function Install()
+    if not linkHandlerInstalled then
+        -- Blizzard dispatches local addon links after handling the click itself.
+        if EventRegistry and EventRegistry.RegisterCallback then
+            EventRegistry:RegisterCallback("SetItemRef", function(_, ...)
+                OnLinkClick(...)
+            end, module)
+        elseif type(SetItemRef) == "function" and hooksecurefunc then
+            hooksecurefunc("SetItemRef", OnLinkClick)
+        else
+            return false
+        end
+        linkHandlerInstalled = true
+    end
     if ChatFrame_AddMessageEventFilter then
         local events = {
             "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_WHISPER", "CHAT_MSG_WHISPER_INFORM",
@@ -244,20 +249,11 @@ local function Install()
             end
         end
     end
-    for _, name in ipairs({ "FCF_OpenNewWindow", "FCF_OpenTemporaryWindow" }) do
-        if _G[name] and not installedWindowHooks[name] then
-            hooksecurefunc(name, function()
-                if module:IsEnabled() then ForEachChatFrame(HookFrame) end
-            end)
-            installedWindowHooks[name] = true
-        end
-    end
-    ForEachChatFrame(HookFrame)
+    return true
 end
 
 function module:OnEnable()
-    Install()
-    ForEachChatFrame(function(frame) TransformHistory(frame, Linkify) end)
+    if Install() then ForEachChatFrame(function(frame) TransformHistory(frame, Linkify) end) end
 end
 
 function module:OnDisable()
@@ -266,6 +262,5 @@ function module:OnDisable()
 end
 
 module:RegisterEvent("PLAYER_ENTERING_WORLD", function()
-    Install()
-    ForEachChatFrame(function(frame) TransformHistory(frame, Linkify) end)
+    if Install() then ForEachChatFrame(function(frame) TransformHistory(frame, Linkify) end) end
 end)

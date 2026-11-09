@@ -430,7 +430,7 @@ fishingModule:RegisterSlashCommand("fishing", function()
     fishingModule:CreateOptionsPanel(yTools.optionsCategory)
     local category = fishingModule.settingsCategory
     if category and Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory(category.GetID and category:GetID() or category.ID)
+        yTools:OpenSettingsCategory(category.GetID and category:GetID() or category.ID)
     end
 end, L.FISHING_COMMAND_HELP)
 -- Options must remain reachable when this module is disabled.

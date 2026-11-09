@@ -21,7 +21,6 @@ local installed = false
 local worker
 local elapsedTime = 0
 local tracked = setmetatable({}, {__mode = "k"})
-local hooked = setmetatable({}, {__mode = "k"})
 
 local function IsSecret(value)
     if issecretvalue and issecretvalue(value) then return true end
@@ -98,20 +97,28 @@ local function UpdateTooltip(tooltip, state, layout)
     local count = tooltip:NumLines()
     if IsSecret(name) or type(name) ~= "string" or IsSecret(count) or type(count) ~= "number" then return end
 
-    local row
-    for index = 1, count do
-        local left = _G[name .. "TextLeft" .. index]
-        if left and not (left.IsForbidden and left:IsForbidden()) then
-            local text = left:GetText()
-            if not IsSecret(text) and text == LABEL then row = index; break end
+    local row = state.row
+    if not layout then
+        for index = 1, count do
+            local left = _G[name .. "TextLeft" .. index]
+            if left and not (left.IsForbidden and left:IsForbidden()) then
+                local text = left:GetText()
+                if not IsSecret(text) and text == LABEL then row = index; break end
+            end
         end
     end
     local added = not row
     if added then
+        -- Only the native post-call may add a line. In combat even our own
+        -- label can read back as secret, so polling cannot find it by text.
+        -- Reuse its row until the native tooltip is cleared/rebuilt instead.
+        if layout then return end
         _G.yTools.UI.TooltipFooterGap(tooltip, "footer")
         tooltip:AddDoubleLine(LABEL, NONE, 1, 0.82, 0, 1, 1, 1)
         row = tooltip:NumLines()
     end
+    if IsSecret(row) or type(row) ~= "number" or (row > count and not added) then return end
+    state.row = row
     local right = _G[name .. "TextRight" .. row]
     if not right or (right.IsForbidden and right:IsForbidden()) then return end
 
@@ -141,13 +148,9 @@ end
 
 local function OnTooltip(tooltip, data)
     if not module:IsEnabled() or not tooltip or (tooltip.IsForbidden and tooltip:IsForbidden()) then return end
-    local state = {unit = ResolveUnit(tooltip, data)}
+    local state = tracked[tooltip] or {}
+    state.unit = ResolveUnit(tooltip, data)
     tracked[tooltip] = state
-    if not hooked[tooltip] and tooltip.HookScript then
-        tooltip:HookScript("OnHide", function(self) tracked[self] = nil end)
-        tooltip:HookScript("OnTooltipCleared", function(self) tracked[self] = nil end)
-        hooked[tooltip] = true
-    end
     -- The native processor performs the initial layout after this callback.
     UpdateTooltip(tooltip, state, false)
     if worker then worker:Show() end
@@ -155,7 +158,11 @@ end
 
 function module:OnEnable()
     if not installed and TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall
+        and TooltipDataProcessor.AddTooltipPreCall
         and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Unit ~= nil then
+        TooltipDataProcessor.AddTooltipPreCall(Enum.TooltipDataType.Unit, function(tooltip)
+            tracked[tooltip] = nil
+        end)
         TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, OnTooltip)
         installed = true
     end
@@ -169,7 +176,7 @@ function module:OnEnable()
             if module:IsEnabled() then UpdateVisible() else worker:Hide() end
         end)
     end
-    if GameTooltip and not GameTooltip:IsForbidden() and GameTooltip:IsShown()
+    if not (InCombatLockdown and InCombatLockdown()) and GameTooltip and not GameTooltip:IsForbidden() and GameTooltip:IsShown()
         and GameTooltip.IsTooltipType and GameTooltip:IsTooltipType(Enum.TooltipDataType.Unit)
         and GameTooltip.RebuildFromTooltipInfo then
         GameTooltip:RebuildFromTooltipInfo()
@@ -180,6 +187,7 @@ function module:OnDisable()
     if worker then worker:Hide() end
     for tooltip in pairs(tracked) do
         if not (tooltip.IsForbidden and tooltip:IsForbidden()) and tooltip:IsShown()
+            and not (InCombatLockdown and InCombatLockdown())
             and tooltip.RebuildFromTooltipInfo then tooltip:RebuildFromTooltipInfo() end
     end
     tracked = setmetatable({}, {__mode = "k"})

@@ -123,10 +123,20 @@ local function OnItemName(tooltip, line)
     OnTooltip(tooltip, data)
 end
 
+-- Comparison tooltips are rebuilt by their owning tooltip. Rebuilding one
+-- directly can clear its infoList while Blizzard is still processing it.
+local function CanRefreshTooltip(tooltip)
+    return not (tooltip.IsForbidden and tooltip:IsForbidden())
+        and not tooltip.isShopping
+        and tooltip ~= ShoppingTooltip1 and tooltip ~= ShoppingTooltip2
+        and tooltip ~= ItemRefShoppingTooltip1 and tooltip ~= ItemRefShoppingTooltip2
+        and not tooltip.processingInfo
+        and tooltip:IsShown() and tooltip.RebuildFromTooltipInfo
+end
+
 local function RefreshTooltips()
     for tooltip in pairs(tooltips) do
-        if not (tooltip.IsForbidden and tooltip:IsForbidden()) and tooltip:IsShown()
-            and tooltip.RebuildFromTooltipInfo then tooltip:RebuildFromTooltipInfo() end
+        if CanRefreshTooltip(tooltip) then tooltip:RebuildFromTooltipInfo() end
     end
 end
 
@@ -152,8 +162,7 @@ module:RegisterEvent("GET_ITEM_INFO_RECEIVED", function(_, _, id, success)
     for tooltip, itemID in pairs(pending) do
         if itemID == id then
             pending[tooltip] = nil
-            if success and not (tooltip.IsForbidden and tooltip:IsForbidden()) and tooltip:IsShown()
-                and tooltip.RebuildFromTooltipInfo then tooltip:RebuildFromTooltipInfo() end
+            if success and CanRefreshTooltip(tooltip) then tooltip:RebuildFromTooltipInfo() end
         end
     end
 end)

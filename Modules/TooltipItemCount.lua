@@ -161,14 +161,48 @@ local function Scan()
     local types = Enum and Enum.BankType
     if types then
         local bank = ReadBank(types.Character)
-        if bank then record.bank, record.bankKnown = bank, true end
+        if bank then
+            record.bank, record.bankKnown = bank, true
+            local now = GetServerTime and GetServerTime() or (time and time())
+            if PublicNumber(now) then record.bankUpdatedAt = now end
+        end
     end
 end
 
+-- Read-only access to this character's cached inventory for other modules.
+-- Does not trigger a bank scan or expose another character's inventory.
+function module:GetCurrentItemCounts(id)
+    if not PublicNumber(id) or id <= 0 then return end
+    local record = CurrentCharacter()
+    if not record then return end
+    local bags, bank = (record.bags or {})[id], (record.bank or {})[id]
+    return PublicNumber(bags) and bags or 0, PublicNumber(bank) and bank or 0, record.bankKnown == true, record.bankUpdatedAt
+end
+
+-- Comparison tooltips are rebuilt by their owning tooltip. Rebuilding one
+-- directly can clear its infoList while Blizzard is still processing it.
+local function CanRefreshTooltip(tooltip, recordedData)
+    if InCombatLockdown and InCombatLockdown() then return false end
+    if tooltip.IsForbidden and tooltip:IsForbidden() then return false end
+    if IsSecret(recordedData) or type(recordedData) ~= "table" then return false end
+    local entries = tooltip.infoList
+    if IsSecret(entries) or type(entries) ~= "table" then return false end
+    local info = entries[1]
+    if IsSecret(info) or type(info) ~= "table" or IsSecret(info.tooltipData)
+        or info.tooltipData ~= recordedData or IsSecret(info.getterName) or info.getterName == "GetAction" then return false end
+    local extra = next(entries, 1)
+    if IsSecret(extra) or extra ~= nil then return false end
+    return not (tooltip.IsForbidden and tooltip:IsForbidden())
+        and not tooltip.isShopping
+        and tooltip ~= ShoppingTooltip1 and tooltip ~= ShoppingTooltip2
+        and tooltip ~= ItemRefShoppingTooltip1 and tooltip ~= ItemRefShoppingTooltip2
+        and not tooltip.processingInfo
+        and tooltip:IsShown() and tooltip.RebuildFromTooltipInfo
+end
+
 local function RefreshTooltips()
-    for tooltip in pairs(tooltips) do
-        if not (tooltip.IsForbidden and tooltip:IsForbidden()) and tooltip:IsShown()
-            and tooltip.RebuildFromTooltipInfo then tooltip:RebuildFromTooltipInfo() end
+    for tooltip, data in pairs(tooltips) do
+        if CanRefreshTooltip(tooltip, data) then tooltip:RebuildFromTooltipInfo() end
     end
 end
 
@@ -194,7 +228,6 @@ end
 function module:AddItemCounts(tooltip, id)
     if not self:IsEnabled() or not PublicNumber(id) or id <= 0 or not tooltip
         or (tooltip.IsForbidden and tooltip:IsForbidden()) then return end
-    tooltips[tooltip] = true
     if HasCounts(tooltip) then return end
     if not currentKey and not CurrentCharacter() then return end
     local db = Storage()
@@ -244,6 +277,7 @@ local function OnTooltip(tooltip, data)
         id = ids and ids.GetMacroItemID and ids:GetMacroItemID(tooltip, data)
     end
     module:AddItemCounts(tooltip, id)
+    tooltips[tooltip] = data
 end
 
 function module:OnEnable()

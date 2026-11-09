@@ -154,17 +154,6 @@ end
 
 -- Separate native tooltip content from the addon footer, and counts from IDs.
 -- Inspect current lines rather than keeping state across tooltip rebuilds.
-local tooltipSpacerFonts = setmetatable({}, { __mode = "k" })
-local tooltipSpacerHooks = setmetatable({}, { __mode = "k" })
-local function RestoreTooltipSpacerFonts(tooltip)
-    for line, font in pairs(tooltipSpacerFonts[tooltip] or {}) do
-        if not (line.IsForbidden and line:IsForbidden()) then
-            line:SetFont(font[1], font[2], font[3])
-        end
-    end
-    tooltipSpacerFonts[tooltip] = nil
-end
-
 function UI.TooltipFooterGap(tooltip, section)
     if not tooltip or (tooltip.IsForbidden and tooltip:IsForbidden()) then return end
     local L = _G.yTools.L
@@ -193,21 +182,7 @@ function UI.TooltipFooterGap(tooltip, section)
     local needsGap = not footer or (section == "ids" and counts and not ids)
     if needsGap and (type(lastText) ~= "string" or lastText:match("%S")) then
         tooltip:AddLine(" ")
-        local index = tooltip:NumLines()
-        if type(name) ~= "string" or (issecretvalue and issecretvalue(index)) then return end
-        local spacer = _G[name .. "TextLeft" .. index]
-        if spacer and spacer.GetFont and spacer.SetFont and tooltip.HookScript
-            and not (spacer.IsForbidden and spacer:IsForbidden()) then
-            local path, size, flags = spacer:GetFont()
-            if type(path) == "string" and type(size) == "number" then
-                if not tooltipSpacerHooks[tooltip] then
-                    tooltip:HookScript("OnTooltipCleared", RestoreTooltipSpacerFonts)
-                    tooltipSpacerHooks[tooltip] = true
-                end
-                tooltipSpacerFonts[tooltip] = tooltipSpacerFonts[tooltip] or {}
-                tooltipSpacerFonts[tooltip][spacer] = { path, size, flags or "" }
-                spacer:SetFont(path, size / 2, flags or "")
-            end
-        end
+        -- Keep native font regions untouched. Restoring resized spacer fonts
+        -- from OnTooltipCleared hooks can taint unrelated map POI tooltips.
     end
 end

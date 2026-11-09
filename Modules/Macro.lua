@@ -1522,6 +1522,7 @@ function module:CreateOptionsPanel(parentCategory)
     end)
     panel:SetScript("OnShow", RefreshForm)
     settingsCategory = Settings.RegisterCanvasLayoutSubcategory(parentCategory, panel, L.MACRO_MANAGER)
+    self.settingsCategory = settingsCategory
     RefreshForm()
 end
 
@@ -1529,7 +1530,7 @@ function module:OpenOptionsPanel()
     yTools:CreateOptionsPanel()
     self:CreateOptionsPanel(yTools.optionsCategory)
     if settingsCategory and Settings.OpenToCategory then
-        Settings.OpenToCategory(settingsCategory:GetID())
+        yTools:OpenSettingsCategory(settingsCategory:GetID())
     end
 end
 

@@ -46,3 +46,17 @@ end)
 module:RegisterEvent("ADDON_LOADED", function()
 	Update()
 end)
+
+-- Capture the original call path once per minute for yTools blocks. Repeated
+-- chat notifications alone cannot identify which native path was tainted.
+local lastBlockedAt = -math.huge
+module:RegisterEvent("ADDON_ACTION_BLOCKED", function(_, _, addonName, action)
+    if (issecretvalue and (issecretvalue(addonName) or issecretvalue(action)))
+        or addonName ~= yTools.name or type(action) ~= "string" or not debugstack then return end
+    local now = GetTime()
+    if now - lastBlockedAt < 60 then return end
+    lastBlockedAt = now
+    local stack = debugstack(2, 12, 0)
+    yTools.lastBlockedAction = {action = action, stack = stack}
+    yTools:Print(string.format(L.BLOCKED_ACTION_TRACE, action, stack))
+end)

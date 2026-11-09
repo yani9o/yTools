@@ -23,6 +23,7 @@ end
 
 local optionsPanel
 local optionsCategory
+local optionPages
 local moduleScrollFrame
 local moduleContent
 local moduleControls = {}
@@ -548,7 +549,12 @@ function yTools:CreateOptionsPanel()
 
 
     self.optionsCategory = optionsCategory
-    local optionPages = {
+    optionPages = {
+        { id = "LibraryBooks", title = L.LIBRARY_BOOKS_TITLE },
+        { id = "AutoQuest", title = L.AUTO_QUEST_TITLE },
+        { id = "HunterBar", title = L.HUNTERBAR_TITLE },
+        { id = "FalconTracker", title = L.FALCON_TRACKER_TITLE },
+        { id = "TargetThreat", title = L.TARGET_THREAT_TITLE },
         { id = "CastBars", title = L.CASTBARS_OPTIONS },
         { id = "TooltipVendorPrice", title = L.TOOLTIP_VENDOR_PRICE },
         { id = "BagSlots", title = L.BAG_SLOTS_OPTIONS },
@@ -571,6 +577,7 @@ function yTools:CreateOptionsPanel()
             optionModule:CreateOptionsPanel(optionsCategory)
         end
     end
+    self:RefreshModuleOptionPages()
 
     -- Start with the module subpages visible; users can still collapse them.
     if optionsCategory.SetExpanded then
@@ -589,7 +596,45 @@ end
 -- Refresh checkbox states
 ------------------------------------------------------------
 
+function yTools:RefreshModuleOptionPages()
+    if not optionPages or not optionsCategory or not optionsCategory.GetSubcategories then return end
+    local children = optionsCategory:GetSubcategories()
+    if type(children) ~= "table" then return end
+    local managed, desired = {}, {}
+    local removedOpenPage
+    for _, page in ipairs(optionPages) do
+        local module = self:GetModule(page.id)
+        local category = module and module.settingsCategory
+        if category then
+            managed[category] = true
+            if module:IsEnabled() then
+                desired[#desired + 1] = category
+            elseif module.settingsPanel and module.settingsPanel:IsVisible() then
+                removedOpenPage = true
+            end
+        end
+    end
+    local current = {}
+    for _, child in ipairs(children) do
+        if managed[child] then current[#current + 1] = child end
+    end
+    local changed = #current ~= #desired
+    for i, category in ipairs(desired) do
+        if current[i] ~= category then changed = true; break end
+    end
+    if not changed then return end
+    for i = #children, 1, -1 do
+        if managed[children[i]] then table.remove(children, i) end
+    end
+    for _, category in ipairs(desired) do children[#children + 1] = category end
+    local panel = _G.SettingsPanel
+    local list = panel and panel.GetCategoryList and panel:GetCategoryList()
+    if list and list.CreateCategories then list:CreateCategories() end
+    if removedOpenPage then self:OpenOptionsPanel() end
+end
+
 function yTools:RefreshOptionsPanel()
+    self:RefreshModuleOptionPages()
     for _, row in ipairs(moduleControls) do
         local module = row.module
 
@@ -605,6 +650,39 @@ end
 ------------------------------------------------------------
 -- Open options
 ------------------------------------------------------------
+
+-- Opening Blizzard Settings is protected during combat. Keep only the last
+-- requested page and use the normal public API once lockdown has ended.
+local pendingSettingsCategory
+local settingsWaiter = CreateFrame("Frame")
+function yTools:OpenSettingsCategory(categoryID)
+    if (issecretvalue and issecretvalue(categoryID)) or type(categoryID) ~= "number" then return false end
+    for _, page in ipairs(optionPages or {}) do
+        local module = self:GetModule(page.id)
+        local category = module and module.settingsCategory
+        if category and not module:IsEnabled()
+            and categoryID == (category.GetID and category:GetID() or category.ID) then
+            categoryID = optionsPanel.yToolsCategoryID
+            break
+        end
+    end
+    if InCombatLockdown and InCombatLockdown() then
+        if not pendingSettingsCategory then self:Print(L.SETTINGS_AFTER_COMBAT) end
+        pendingSettingsCategory = categoryID
+        settingsWaiter:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return false
+    end
+    pendingSettingsCategory = nil
+    settingsWaiter:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    if Settings and Settings.OpenToCategory then
+        Settings.OpenToCategory(categoryID)
+        return true
+    end
+    return false
+end
+settingsWaiter:SetScript("OnEvent", function()
+    if pendingSettingsCategory then yTools:OpenSettingsCategory(pendingSettingsCategory) end
+end)
 
 function yTools:OpenOptionsPanel()
     if not optionsPanel then
@@ -629,8 +707,6 @@ function yTools:OpenOptionsPanel()
     if Settings
         and Settings.OpenToCategory
     then
-        Settings.OpenToCategory(
-            categoryID
-        )
+        self:OpenSettingsCategory(categoryID)
     end
 end

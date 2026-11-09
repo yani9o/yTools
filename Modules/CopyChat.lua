@@ -57,7 +57,9 @@ local COPY_WHEEL_STEP = 40
 
 local function StripChatText(text)
 
-    if not text then
+    -- Chat can include protected combat messages. They cannot be compared,
+    -- stripped or exported by addon code, even after combat has ended.
+    if (issecretvalue and issecretvalue(text)) or type(text) ~= "string" then
         return ""
     end
 
@@ -119,12 +121,16 @@ local function GetChatText(chatFrame)
     local count =
         chatFrame:GetNumMessages()
 
+    if (issecretvalue and issecretvalue(count)) or type(count) ~= "number" then
+        return ""
+    end
+
     for i = 1, count do
 
         local text =
             chatFrame:GetMessageInfo(i)
 
-        if text and text ~= "" then
+        if not (issecretvalue and issecretvalue(text)) and type(text) == "string" and text ~= "" then
 
             messages[#messages + 1] =
                 StripChatText(text)

@@ -4,11 +4,13 @@ local module = _G.yTools:RegisterModule("BagSlots", {
     title = L.BAG_SLOTS_MODULE,
     description = L.BAG_SLOTS_DESCRIPTION,
     defaultEnabled = true,
-    defaults = { reverseSlots = false },
+    defaults = { reverseSlots = false, separateAmmo = false },
 })
 
 local worker = CreateFrame("Frame")
 local hooked = setmetatable({}, {__mode = "k"})
+local baseHeights = setmetatable({}, {__mode = "k"})
+local resizing
 local pending, refreshing = false, false
 
 local function Defer()
@@ -18,8 +20,22 @@ end
 
 
 
+local function SetExtraHeight(frame, extra)
+    local base = baseHeights[frame] or frame:GetHeight()
+    if extra == 0 and not baseHeights[frame] then return end
+    baseHeights[frame] = extra > 0 and base or nil
+    resizing = frame
+    frame:SetHeight(base + extra)
+    resizing = nil
+end
+
 local function ArrangeLayout(frame)
-    if not module:IsEnabled() then return end
+    if not module:IsEnabled() then
+        if baseHeights[frame] and not (InCombatLockdown() and frame:IsProtected()) then
+            SetExtraHeight(frame, 0)
+        end
+        return
+    end
     if not frame.EnumerateValidItems then return end
     if InCombatLockdown() and frame:IsProtected() then Defer(); return end
     local left, bottom = frame:GetLeft(), frame:GetBottom()
@@ -58,15 +74,44 @@ local function ArrangeLayout(frame)
     end
     table.sort(columns)
     table.sort(rows, function(a, b) return a > b end)
-    -- Clear the whole old anchor chain before reconnecting any button.
-    for _, slot in ipairs(slots) do slot.button:ClearAllPoints() end
-    local reverse = module:GetDB().reverseSlots == true
+    local db = module:GetDB()
+    local regular, ammo = {}, {}
+    local ammoBags = {}
+    local getFreeSlots = C_Container and C_Container.GetContainerNumFreeSlots or GetContainerNumFreeSlots
     for i = 1, #slots do
-        local slot = slots[reverse and (#slots - i + 1) or i]
-        local column = (i - 1) % #columns + 1
-        local row = math.floor((i - 1) / #columns) + 1
-        slot.button:SetPoint("CENTER", frame, "BOTTOMLEFT", columns[column], rows[row])
+        local slot = slots[db.reverseSlots and (#slots - i + 1) or i]
+        local bag = db.separateAmmo and getFreeSlots and slot.button.GetBagID and slot.button:GetBagID()
+        if bag and bag > 0 and ammoBags[bag] == nil then
+            local _, family = getFreeSlots(bag)
+            ammoBags[bag] = family == 1 or family == 2 or family == 3
+        end
+        local group = ammoBags[bag] and ammo or regular
+        group[#group + 1] = slot
     end
+
+    local width = #columns
+    local regularRows = math.ceil(#regular / width)
+    local neededRows = regularRows + math.ceil(#ammo / width)
+    local extra = 0
+    if neededRows > #rows then
+        local pitch = rows[2] and (rows[#rows - 1] - rows[#rows])
+        if not pitch or pitch <= 0 then return end
+        extra = (neededRows - #rows) * pitch
+        for row = #rows + 1, neededRows do rows[row] = rows[row - 1] - pitch end
+    end
+    SetExtraHeight(frame, extra)
+
+    -- Keep the native bag and slot IDs. Only change the buttons' positions.
+    for _, slot in ipairs(slots) do slot.button:ClearAllPoints() end
+    local function Place(group, rowOffset)
+        for i, slot in ipairs(group) do
+            local column = (i - 1) % width + 1
+            local row = rowOffset + math.floor((i - 1) / width) + 1
+            slot.button:SetPoint("CENTER", frame, "BOTTOMLEFT", columns[column], rows[row] + extra)
+        end
+    end
+    Place(regular, 0)
+    Place(ammo, regularRows)
 end
 
 local function Refresh()
@@ -97,6 +142,9 @@ local function InstallHooks()
     local frame = _G.ContainerFrameCombinedBags
     if not frame or not frame.UpdateItemLayout or hooked[frame] then return false end
     hooked[frame] = true
+    hooksecurefunc(frame, "SetHeight", function(self)
+        if resizing ~= self then baseHeights[self] = nil end
+    end)
     hooksecurefunc(frame, "UpdateItemLayout", ArrangeLayout)
     frame:HookScript("OnShow", Refresh)
     return true
@@ -151,6 +199,7 @@ function module:CreateOptionsPanel(parentCategory)
     enabledLabel:ClearAllPoints(); enabledLabel:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -32, -22)
     enabled:ClearAllPoints(); enabled:SetPoint("RIGHT", enabledLabel, "LEFT", -5, 0)
     local reverse = Check(L.REVERSE_BAG_SLOTS, -150)
+    local ammo = Check(L.BAG_SLOTS_SEPARATE_AMMO, -184)
     local description = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     description:SetPoint("TOPLEFT", 32, -64); description:SetWidth(590)
     description:SetJustifyH("LEFT"); description:SetText(L.BAG_SLOTS_DESCRIPTION)
@@ -158,6 +207,8 @@ function module:CreateOptionsPanel(parentCategory)
         enabled:SetChecked(self:IsEnabled())
         reverse:SetChecked(self:GetDB().reverseSlots == true)
         reverse:SetEnabled(self:IsEnabled())
+        ammo:SetChecked(self:GetDB().separateAmmo == true)
+        ammo:SetEnabled(self:IsEnabled())
     end
     enabled:SetScript("OnClick", function(button)
         if button:GetChecked() then self:Enable() else self:Disable() end
@@ -165,6 +216,10 @@ function module:CreateOptionsPanel(parentCategory)
     end)
     reverse:SetScript("OnClick", function(button)
         self:GetDB().reverseSlots = button:GetChecked() == true
+        Refresh()
+    end)
+    ammo:SetScript("OnClick", function(button)
+        self:GetDB().separateAmmo = button:GetChecked() == true
         Refresh()
     end)
     panel:SetScript("OnShow", Update)
@@ -179,7 +234,7 @@ module:RegisterSlashCommand("bagslots", function()
     module:CreateOptionsPanel(yTools.optionsCategory)
     local category = module.settingsCategory
     if category and Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory(category.GetID and category:GetID() or category.ID)
+        yTools:OpenSettingsCategory(category.GetID and category:GetID() or category.ID)
     end
 end, L.BAG_SLOTS_COMMAND_HELP)
 yTools.commands.bagslots.allowDisabled = true

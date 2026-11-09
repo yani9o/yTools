@@ -1,0 +1,5 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <Frame name="yToolsLeylinePinTemplate" mixin="yToolsLeylinePinMixin" hidden="true" virtual="true">
+        <Size x="16" y="16"/>
+    </Frame>
+</Ui>

@@ -196,6 +196,21 @@ function ModulePrototype:GetDB()
 end
 
 
+-- Character-specific activation is separate from shared module settings.
+function ModulePrototype:GetEnabledDB()
+    if not self.characterDefault then return self:GetDB() end
+    if type(yToolsCharacterModulesDB) ~= "table" then
+        yToolsCharacterModulesDB = {}
+    end
+    local db = yToolsCharacterModulesDB[self.id]
+    if type(db) ~= "table" then
+        db = {}
+        yToolsCharacterModulesDB[self.id] = db
+    end
+    return db
+end
+
+
 function ModulePrototype:IsEnabled()
 
     return self.enabled == true
@@ -212,7 +227,7 @@ function ModulePrototype:Enable()
 
     self.enabled = true
 
-    local db = self:GetDB()
+    local db = self:GetEnabledDB()
 
     db.enabled = true
 
@@ -248,7 +263,7 @@ function ModulePrototype:Disable()
 
     self.enabled = false
 
-    local db = self:GetDB()
+    local db = self:GetEnabledDB()
 
     db.enabled = false
 
@@ -459,6 +474,8 @@ function yTools:RegisterModule(
                 metadata.defaultEnabled
                 == true,
 
+            characterDefault = metadata.characterDefault,
+
             defaults =
                 metadata.defaults
                 or {},
@@ -505,18 +522,15 @@ function yTools:InitializeModuleState(
     module
 )
 
-    local db =
-        module:GetDB()
-
-    if db.enabled == nil then
-
-        db.enabled =
-            module.defaultEnabled
-
+    local db = module:GetEnabledDB()
+    if module.characterDefault and db.enabled == nil then
+        module.enabled = module.characterDefault() == true
+        return
     end
-
-    module.enabled =
-        db.enabled == true
+    if db.enabled == nil then
+        db.enabled = module.defaultEnabled
+    end
+    module.enabled = db.enabled == true
 end
 
 

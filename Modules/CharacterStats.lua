@@ -672,7 +672,7 @@ module:RegisterSlashCommand("charstats", function()
     module:CreateOptionsPanel(yTools.optionsCategory)
     local category = module.settingsCategory
     if category and Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory(category.GetID and category:GetID() or category.ID)
+        yTools:OpenSettingsCategory(category.GetID and category:GetID() or category.ID)
     end
 end, L.CHARACTERSTATS_COMMAND_HELP)
 -- Options must remain reachable when this module is disabled.

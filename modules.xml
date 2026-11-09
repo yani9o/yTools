@@ -1,5 +1,6 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<Script file="Modules\ActionBarPageIndicator.lua"/>
+	<Script file="Modules\AutoQuest.lua"/>
 	<Script file="Modules\AutoRepair.lua"/>
 	<Script file="Modules\AutoSellJunk.lua"/>
 	<Script file="Modules\Bags.lua"/>
@@ -10,18 +11,31 @@
 	<Script file="Modules\CharacterStats.lua"/>
 	<Script file="Modules\CharacterInfoPanel.lua"/>
 	<Script file="Modules\ClassTrainer.lua"/>
+	<Script file="Data\PetSkills.lua"/>
+	<Script file="Modules\PetSkills.lua"/>
 	<Script file="Modules\ChatArrowKeys.lua"/>
 	<Script file="Modules\CopyChat.lua"/>
 	<Script file="Modules\CopyLinks.lua"/>
 	<Script file="Modules\Fishing.lua"/>
 	<Script file="Modules\Framerate.lua"/>
 	<Script file="Modules\HitIndicator.lua"/>
+	<Script file="Modules\HunterBar.lua"/>
+	<Script file="Modules\FalconTracker.lua"/>
+	<Script file="Modules\LearnAll.lua"/>
+	<Script file="Data\LibraryBooks.lua"/>
+	<Script file="Modules\LibraryBooks.lua"/>
+	<Include file="Modules\LibraryBooks.xml"/>
+	<Script file="Data\Leylines.lua"/>
+	<Script file="Modules\Leylines.lua"/>
+	<Include file="Modules\Leylines.xml"/>
 	<Script file="Modules\LuaErrors.lua"/>
+	<Script file="Data\MapReveal.lua"/>
+	<Script file="Modules\MapReveal.lua"/>
 	<Script file="Modules\Macro.lua"/>
 	<Script file="Modules\Notepad.lua"/>
 	<Script file="Modules\MacroText.lua"/>
 	<Script file="Modules\PlayerBorder.lua"/>
-	<Script file="Modules\PtrIssueReporter.lua"/>
+	<!--<Script file="Modules\PtrIssueReporter.lua"/>-->
 	<Script file="Modules\Rollframe.lua"/>
 	<Script file="Modules\TooltipItemLevel.lua"/>
 	<Script file="Modules\TooltipItemCount.lua"/>
@@ -31,5 +45,5 @@
 	<Script file="Modules\TooltipTargetTarget.lua"/>
 	<Script file="Modules\TooltipUnitID.lua"/>
 	<Script file="Modules\TooltipVendorPrice.lua"/>
-	<!--<Script file="Modules\StanceBar.lua"/>-->
+	<Script file="Modules\TargetThreat.lua"/>
 </Ui>

@@ -190,7 +190,15 @@ local function OnSellPrice(tooltip, line)
     end
     -- Keep Blizzard's comparison tooltips and restricted prices untouched.
     if IsComparisonTooltip(tooltip) then return end
-    tooltips[tooltip] = true
+    local info = tooltip.GetProcessingTooltipInfo and tooltip:GetProcessingTooltipInfo()
+    if not IsSecret(info) and type(info) == "table" then
+        local data = info.tooltipData
+        local types = Enum and Enum.TooltipDataType
+        if types and not IsSecret(data) and type(data) == "table"
+            and not IsSecret(data.type) and data.type == types.Item then
+            tooltips[tooltip] = data
+        end
+    end
     local db = module:GetDB()
     local modifierDown = (db.modifier == "CTRL" and IsControlKeyDown())
         or (db.modifier == "ALT" and IsAltKeyDown())
@@ -230,13 +238,49 @@ local function OnSellPrice(tooltip, line)
     return true
 end
 
+local function HasPublicTooltipData(value, seen)
+    if IsSecret(value) then return false end
+    if type(value) ~= "table" then return true end
+    if seen[value] then return true end
+    seen[value] = true
+    for key, field in next, value do
+        if IsSecret(key) or not HasPublicTooltipData(field, seen) then return false end
+    end
+    return true
+end
+
+local function CanRefreshTooltip(tooltip, recordedData)
+    if (tooltip.IsForbidden and tooltip:IsForbidden()) or IsComparisonTooltip(tooltip)
+        or not tooltip:IsShown() or not tooltip.RebuildFromTooltipInfo then
+        return false
+    end
+    -- Tooltip frames are reused. Rebuild only the same item whose sell-price
+    -- line we saw, never an action tooltip or a stack of appended entries.
+    local entries = tooltip.infoList
+    if IsSecret(entries) or type(entries) ~= "table" then return false end
+    local info = entries[1]
+    local first = next(entries)
+    if IsSecret(info) or type(info) ~= "table" or IsSecret(first) or first ~= 1
+        or type(next(entries, 1)) ~= "nil" then return false end
+    local data, getter = info.tooltipData, info.getterName
+    if IsSecret(data) or data ~= recordedData or IsSecret(getter) or getter == "GetAction" then return false end
+    local owner = tooltip.GetOwner and tooltip:GetOwner()
+    if IsSecret(owner) or (owner and ((owner.IsForbidden and owner:IsForbidden())
+        or IsSecret(owner.action) or owner.action ~= nil or owner.GetAction)) then return false end
+    return HasPublicTooltipData(info, {})
+end
+
 local function RefreshTooltips()
-    for tooltip in pairs(tooltips) do
-        if IsComparisonTooltip(tooltip) then
-            tooltips[tooltip] = nil
-        elseif not (tooltip.IsForbidden and tooltip:IsForbidden()) and tooltip:IsShown()
-            and tooltip.RebuildFromTooltipInfo then
+    if InCombatLockdown and InCombatLockdown() then return end
+    if GetCursorInfo then
+        local cursorType = GetCursorInfo()
+        if IsSecret(cursorType) or cursorType ~= nil then return end
+    end
+    for tooltip, data in pairs(tooltips) do
+        if CanRefreshTooltip(tooltip, data) then
             tooltip:RebuildFromTooltipInfo()
+        else
+            tooltips[tooltip] = nil
         end
     end
 end
@@ -268,7 +312,7 @@ function module:OnDisable()
 end
 
 module:RegisterEvent("MODIFIER_STATE_CHANGED", function(_, _, key)
-    if not IsSecret(key) and (key == "LSHIFT" or key == "RSHIFT" or key == "LCTRL" or key == "RCTRL" or key == "LALT" or key == "RALT") then
+    if not IsSecret(key) and type(key) == "string" and key:match("^[LR](%u+)$") == module:GetDB().modifier then
         QueueRefreshTooltips()
     end
 end)

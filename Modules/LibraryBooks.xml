@@ -1,0 +1,8 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <Frame name="yToolsLibraryBookPinTemplate" mixin="yToolsLibraryBookPinMixin" enableMouse="true" hidden="true" virtual="true">
+        <Size x="18" y="18"/>
+        <Scripts>
+            <OnHide method="OnMouseLeave"/>
+        </Scripts>
+    </Frame>
+</Ui>

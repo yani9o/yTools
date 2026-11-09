@@ -132,6 +132,6 @@ module:RegisterSlashCommand("castbars", function()
     yTools:InitializeOptions()
     module:CreateOptionsPanel(yTools.optionsCategory)
     local category = module.settingsCategory
-    if category then Settings.OpenToCategory(category.GetID and category:GetID() or category.ID) end
+    if category then yTools:OpenSettingsCategory(category.GetID and category:GetID() or category.ID) end
 end, L.CASTBARS_COMMAND_HELP)
 yTools.commands.castbars.allowDisabled = true

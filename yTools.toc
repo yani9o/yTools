@@ -6,7 +6,7 @@
 ## Version: 1.0
 ## AddonCompartmentFunc: yTools_OnAddonCompartmentClick
 ## SavedVariables: yToolsDB, yToolsNotepadAccountDB
-## SavedVariablesPerCharacter: yToolsNotepadDB, yToolsCharacterStatsDB, yToolsClassTrainerDB
+## SavedVariablesPerCharacter: yToolsNotepadDB, yToolsCharacterStatsDB, yToolsClassTrainerDB, yToolsLibraryBooksDB, yToolsCharacterModulesDB
 ## IconTexture: Interface\icons\inv_blacksmithing_toolbox_01
 
 localization.lua

@@ -8,6 +8,8 @@ local module = yTools:RegisterModule("ClassTrainer", {
 
 local visiting, scanning, queued, captureAll = false, false, false, false
 local book, panel, tab, windowState
+local previousTabArt, returnTabButton
+local customPageClose
 local rows, headers = {}, {}
 local ScheduleScan, InstallTab
 
@@ -22,10 +24,71 @@ local function Public(value)
     return not issecretvalue or not issecretvalue(value)
 end
 
+-- Filter services too: trainer titles can be missing, and old snapshots can
+-- already contain these skills. Keep the same rule when reading saved entries.
+local ridingSkills = {
+    ["Apprentice Riding"] = true, ["Journeyman Riding"] = true,
+    ["Expert Riding"] = true, ["Artisan Riding"] = true, ["Master Riding"] = true,
+    ["Unerfahrenes Reiten"] = true, ["Geübtes Reiten"] = true,
+    ["Gekonntes Reiten"] = true,
+    ["Gewandtes Reiten"] = true, ["Meisterhaftes Reiten"] = true,
+}
+
+local function IsRidingSkill(spell)
+    local name = spell.name
+    if not Public(name) or type(name) ~= "string" then return false end
+    -- Some trainer entries include the rank directly in their name.
+    name = name:gsub("%s*%b()$", ""):match("^%s*(.-)%s*$")
+    return ridingSkills[name] == true
+end
+
+local excludedTrainerNames = {
+    ["Woo Ping"] = true, ["Buliwyf Stonehand"] = true, ["Bixi Wobblebonk"] = true,
+    ["Ilyenia Moonfire"] = true, ["Hanashi"] = true, ["Sayoc"] = true,
+    ["Ansekhwa"] = true, ["Archibald"] = true,
+    ["Belia Thundergranite"] = true, ["Claude Erksine"] = true, ["Grokor"] = true,
+    ["Karrina Mekenda"] = true, ["Peria Lamenur"] = true, ["Zudd"] = true,
+    ["Bolyun"] = true, ["Caelyb"] = true, ["Harruk"] = true,
+    ["Hesuwa Thunderhorn"] = true, ["Keldas"] = true, ["Nalesette Wildbringer"] = true,
+    ["Reban Freerunner"] = true, ["Silvaria"] = true, ["Xao'tsu"] = true,
+}
+
+local excludedTrainerTitles = {
+    ["weapon master"] = true, ["pet trainer"] = true, ["demon trainer"] = true,
+    ["riding trainer"] = true, ["riding instructor"] = true, ["riding master"] = true,
+    ["reitlehrer"] = true, ["reitlehrerin"] = true,
+    ["reitausbilder"] = true, ["reitausbilderin"] = true,
+    ["waffenmeister"] = true, ["waffenmeisterin"] = true,
+    ["tierausbilder"] = true, ["tierausbilderin"] = true,
+    ["tiertrainer"] = true, ["tiertrainerin"] = true,
+    ["begleitertrainer"] = true, ["begleitertrainerin"] = true,
+    ["dämonenausbilder"] = true, ["dämonenausbilderin"] = true,
+}
+
+local function IsExcludedTrainer()
+    local name = UnitName("npc")
+    if Public(name) and name and excludedTrainerNames[name] then return true end
+    local data = C_TooltipInfo and C_TooltipInfo.GetUnit and C_TooltipInfo.GetUnit("npc")
+    if not Public(data) or not data then return false end
+    local lines = data.lines
+    if not Public(lines) then return false end
+    for index = 2, #(lines or {}) do
+        local line = lines[index]
+        if Public(line) and line then
+            local title = line.leftText
+            if Public(title) and type(title) == "string"
+                and excludedTrainerTitles[title:lower():match("^%s*<?%s*(.-)%s*>?%s*$")] then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 local function IsClassTrainer()
     if IsTradeskillTrainer and IsTradeskillTrainer() then return false end
     if not C_Trainer or not C_Trainer.GetTrainerType or not Enum or not Enum.TrainerType then return false end
-    return C_Trainer.GetTrainerType() == Enum.TrainerType.General
+    return C_Trainer.GetTrainerType() == Enum.TrainerType.General and not IsExcludedTrainer()
 end
 
 local function SpellKey(spell)
@@ -72,6 +135,25 @@ local function ReadRequirements(index)
     return requirements
 end
 
+local function HasUnmetRequirements(spell)
+    if UnitLevel("player") < spell.level then return true end
+    for _, requirement in ipairs(spell.requirements or {}) do
+        if not requirement.met then return true end
+    end
+    return false
+end
+
+local function LearnableCost(spells)
+    local total, count = 0, 0
+    for _, spell in ipairs(spells) do
+        if not Learned(spell) and not HasUnmetRequirements(spell) then
+            total = total + math.max(0, spell.cost or 0)
+            count = count + 1
+        end
+    end
+    return total, count
+end
+
 local function RequirementText(spell)
     local parts = {}
     if spell.level > 1 then
@@ -111,7 +193,7 @@ local function ReadServices()
                     cost = type(cost) == "number" and cost or 0,
                     order = index, tooltip = TooltipLines(data), requirements = ReadRequirements(index),
                 }
-                result[#result + 1] = spell
+                if not IsRidingSkill(spell) then result[#result + 1] = spell end
             end
         end
     end
@@ -174,7 +256,7 @@ end
 function module:GetDisplaySpells()
     local list = {}
     for _, spell in pairs(DB().spells) do
-        list[#list + 1] = spell
+        if not IsRidingSkill(spell) then list[#list + 1] = spell end
     end
     -- Like the trainer: alphabetical categories, native service order within them.
     local grouped = DB().grouped
@@ -275,12 +357,14 @@ local function RenderRows()
                 rows[rowCount], item.spell = item, entry.spell
                 local spell = entry.spell
                 item.icon:SetTexture(spell.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
-                item.icon:SetDesaturated(spell.state == "unavailable")
-                item.disabledBG:SetShown(spell.state == "unavailable")
+                local learned = Learned(spell)
+                -- The saved trainer status can be stale after the player levels up.
+                local unavailable = not learned and spell.state == "unavailable" and HasUnmetRequirements(spell)
+                item.icon:SetDesaturated(unavailable)
+                item.disabledBG:SetShown(unavailable)
                 item.name:SetText(spell.name)
                 item.rank:SetText(spell.rank ~= "" and "(" .. spell.rank .. ")" or "")
                 item.name:SetTextColor(1, .82, 0)
-                local learned = Learned(spell)
                 item.requirement:SetText(learned and L.CLASS_TRAINER_LEARNED or RequirementText(spell))
                 item.requirement:SetTextColor(1, 1, 1)
                 if learned or spell.cost <= 0 then item.money:Hide()
@@ -324,6 +408,9 @@ function module:RefreshList()
     panel.empty:SetText(not db.scanned and L.CLASS_TRAINER_VISIT or L.CLASS_TRAINER_EMPTY)
     panel.empty:SetShown(#list == 0)
     panel.info:SetText(db.scanned and string.format(L.CLASS_TRAINER_SNAPSHOT, db.trainer or "") or "")
+    local total, count = LearnableCost(list)
+    panel.totalCost:SetText(count > 0 and (L.CLASS_TRAINER_TOTAL_COST .. " " .. GetMoneyString(total)) or "")
+    panel.totalCost:SetShown(count > 0)
     local y, lastCategory, learnedSection = 0, nil, false
     panel.entries = {}
     for _, spell in ipairs(list) do
@@ -346,18 +433,17 @@ function module:RefreshList()
     RenderRows()
 end
 
-local function CompactWindow()
+local function HideSpellbookControls()
     if windowState or (InCombatLockdown and InCombatLockdown()) then return end
     local parent = book:GetParent()
-    windowState = {
-        parent = parent, width = parent:GetWidth(), height = parent:GetHeight(),
-        bookWidth = book:GetWidth(), bookHeight = book:GetHeight(), controls = {},
-    }
+    windowState = {controls = {}}
     -- These controls belong to the normal spellbook and do not fit the trainer view.
     local function HideControl(control)
         if not control then return end
-        windowState.controls[#windowState.controls + 1] = {frame = control, shown = control:IsShown()}
-        control:Hide()
+        -- Keep native spellbook controls alive. Hide/Show runs their native
+        -- lifecycle handlers from addon execution and can taint pooled spells.
+        windowState.controls[#windowState.controls + 1] = {frame = control, alpha = control:GetAlpha()}
+        control:SetAlpha(0)
     end
     HideControl(book.TopBar)
     HideControl(book.PagedSpellsFrame)
@@ -372,33 +458,175 @@ local function CompactWindow()
     HideControl(book.SettingsDropdown)
     HideControl(book.SettingsTopFaceIcon)
     HideControl(parent.MaximizeMinimizeButton)
-    -- Keep the visible top-left fixed regardless of the native window's anchor.
-    local scale = parent:GetEffectiveScale() / UIParent:GetEffectiveScale()
-    local left, top = parent:GetLeft(), parent:GetTop()
-    if left and top then
-        parent:ClearAllPoints()
-        parent:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left * scale, top * scale)
-    end
-    parent:SetSize(338, 486)
-    book:SetSize(332, 468)
 end
 
-local function RestoreWindow()
+local function RestoreSpellbookControls()
     local state = windowState
     if not state or (InCombatLockdown and InCombatLockdown()) then return end
     windowState = nil
-    state.parent:SetSize(state.width, state.height)
-    book:SetSize(state.bookWidth, state.bookHeight)
-    for _, control in ipairs(state.controls) do control.frame:SetShown(control.shown) end
+    for _, control in ipairs(state.controls) do control.frame:SetAlpha(control.alpha) end
+end
+
+local function HideReturnTabTooltip()
+    local state = previousTabArt
+    if GameTooltip and (GameTooltip:IsOwned(returnTabButton)
+        or (state and GameTooltip:IsOwned(state.button))) then
+        GameTooltip:Hide()
+    end
+end
+
+local function ShowReturnTabTooltip(proxy)
+    if not previousTabArt or not GameTooltip then return end
+    local button = previousTabArt.button
+    local onEnter = button:GetScript("OnEnter")
+    if onEnter then
+        onEnter(button)
+        if GameTooltip:IsOwned(button) then return end
+    end
+    local text = (button.GetTooltipText and button:GetTooltipText()) or button.tooltipText
+        or (button.GetText and button:GetText())
+    if not text or text == "" then return end
+    GameTooltip:SetOwner(proxy, button.tooltipAnchor or "ANCHOR_TOP", button.tooltipAnchorX, button.tooltipAnchorY)
+    GameTooltip:SetText(text)
+    GameTooltip:Show()
+end
+
+local function RestorePreviousTabArt()
+    if returnTabButton then
+        HideReturnTabTooltip()
+        returnTabButton:Hide()
+    end
+    if not previousTabArt then return end
+    local state = previousTabArt
+    previousTabArt = nil
+    for _, region in ipairs(state.active) do region.texture:SetAlpha(region.alpha) end
+    -- A native tab switch may already have applied the correct artwork.
+    local currentID = book.GetTab and book:GetTab() or state.tabs.selectedTabID
+    local stillSelected = currentID and state.id and currentID == state.id
+    if not currentID or not state.id then
+        stillSelected = not state.button.IsSelected or state.button:IsSelected()
+    end
+    if stillSelected then
+        if state.iconChecked then state.button:SetChecked(true) end
+        if state.font then state.button.Text:SetFontObject(state.font) end
+        for _, region in ipairs(state.inactive) do region.texture:SetShown(region.shown) end
+    end
+end
+
+local function ShowPreviousTabAsInactive(onReturn)
+    local tabs = book.CategoryTabSystem
+    if not tabs then return end
+    local id = book.GetTab and book:GetTab() or tabs.selectedTabID
+    local selected = id and tabs.GetTabButton and tabs:GetTabButton(id)
+    for _, button in ipairs(selected and {selected} or tabs.tabs or {tabs:GetChildren()}) do
+        if button == selected or (button.IsSelected and button:IsSelected())
+            or (button.GetChecked and button:GetChecked()) then
+            local state = {button = button, tabs = tabs, id = id, active = {}, inactive = {}}
+            if button.SquareBackgroundActive or button.SquareBackgroundActiveGlow then
+                local background = button.SquareBackground
+                if background then
+                    state.inactive[#state.inactive + 1] = {texture = background, shown = background:IsShown()}
+                    background:Show()
+                end
+                for _, name in ipairs({"SquareBackgroundActive", "SquareBackgroundActiveGlow"}) do
+                    local texture = button[name]
+                    if texture then
+                        state.active[#state.active + 1] = {texture = texture, alpha = texture:GetAlpha()}
+                        texture:SetAlpha(0)
+                    end
+                end
+            elseif button.Icon and button.SetChecked then
+                -- Spellbook icon tabs draw the gold border from their checked state.
+                -- Leave the tab system's selected ID and callback untouched.
+                state.iconChecked = true
+                button:SetChecked(false)
+            end
+            previousTabArt = state
+            -- Change only textures, leaving Blizzard's selection and button state intact.
+            for _, side in ipairs({"Left", "Middle", "Right"}) do
+                local inactive, active = button[side], button[side .. "Active"]
+                if inactive and active then
+                    state.inactive[#state.inactive + 1] = {texture = inactive, shown = inactive:IsShown()}
+                    state.active[#state.active + 1] = {texture = active, alpha = active:GetAlpha()}
+                    inactive:Show()
+                    active:SetAlpha(0)
+                end
+            end
+            for _, name in ipairs({"LeftHighlight", "MiddleHighlight", "RightHighlight"}) do
+                local texture = button[name]
+                if texture then
+                    state.active[#state.active + 1] = {texture = texture, alpha = texture:GetAlpha()}
+                    texture:SetAlpha(0)
+                end
+            end
+            if button.Text and button.Text.GetFontObject then
+                state.font = button.Text:GetFontObject()
+                button.Text:SetFontObject(button.unselectedFontObject or GameFontNormalSmall)
+            end
+            if not returnTabButton then
+                returnTabButton = CreateFrame("Button", nil, book)
+                returnTabButton:EnableMouse(true)
+                returnTabButton:RegisterForClicks("LeftButtonUp")
+                returnTabButton:SetScript("OnClick", onReturn)
+                returnTabButton:SetScript("OnEnter", ShowReturnTabTooltip)
+                returnTabButton:SetScript("OnLeave", HideReturnTabTooltip)
+            end
+            -- The same proxy is reused by multiple addon pages.
+            returnTabButton:SetScript("OnClick", onReturn)
+            returnTabButton:ClearAllPoints()
+            returnTabButton:SetAllPoints(button)
+            returnTabButton:SetFrameLevel(button:GetFrameLevel() + 1)
+            returnTabButton:Show()
+            return
+        end
+    end
 end
 
 local function ClosePanel()
+    if customPageClose then return end
+    RestorePreviousTabArt()
     if panel then panel:Hide(); panel.tabHeader:Hide() end
-    RestoreWindow()
+    RestoreSpellbookControls()
     if tab then tab:SetChecked(false) end
-    if book and book.CategoryTabSystem then
-        book.CategoryTabSystem:SetTabVisuallySelected(book:GetTab())
+    -- Never write Blizzard's selectedTabID or run native tab selection here.
+    -- Those values are read by secure spellbook and drag handlers.
+end
+
+local function OpenTrainerPanel()
+    if customPageClose then customPageClose() end
+    InstallTab()
+    if not panel or not book:IsVisible() then return false end
+    if not panel:IsShown() then
+        HideSpellbookControls()
+        panel.tabHeader:Show()
+        panel:Show()
+        tab:SetChecked(true)
+        ShowPreviousTabAsInactive(ClosePanel)
+        module:RefreshList()
     end
+    return true
+end
+
+-- Addon-owned spellbook pages share the return-tab proxy and alpha handling.
+-- This remains available when ClassTrainer itself is disabled.
+function module:BeginCustomPage(owner, onReturn)
+    if customPageClose then customPageClose() end
+    ClosePanel()
+    book = owner
+    customPageClose = onReturn
+    HideSpellbookControls()
+    ShowPreviousTabAsInactive(onReturn)
+end
+
+function module:EndCustomPage()
+    if not customPageClose then return end
+    customPageClose = nil
+    RestorePreviousTabArt()
+    RestoreSpellbookControls()
+end
+
+function module:RestoreCustomPageControls()
+    if not customPageClose and (not panel or not panel:IsShown()) then RestoreSpellbookControls() end
 end
 
 InstallTab = function()
@@ -407,7 +635,13 @@ InstallTab = function()
     book = parent and parent.SpellBookFrame
     if not book then return end
     -- Keep Blizzard's tab IDs and protected spell buttons untouched.
-    tab = CreateFrame("Frame", nil, book, "LargeSideTabButtonTemplate")
+    -- The native hover texture extends left of the side tab. Clip it at
+    -- the window edge without moving the tab or changing its tooltip.
+    local tabClip = CreateFrame("Frame", nil, book)
+    tabClip:SetPoint("BOTTOMLEFT", parent, "BOTTOMRIGHT")
+    tabClip:SetSize(120, 120)
+    tabClip:SetClipsChildren(true)
+    tab = CreateFrame("Frame", nil, tabClip, "LargeSideTabButtonTemplate")
     tab:SetFrameLevel(book:GetFrameLevel() + 5)
     tab:EnableMouse(true)
     tab:SetFillToInterior(true)
@@ -415,17 +649,10 @@ InstallTab = function()
     tab.tooltipText = L.CLASS_TRAINER
     tab:SetChecked(false)
     tab:SetPoint("BOTTOMLEFT", book, "BOTTOMRIGHT", -1, 20)
+    module.sideTab = tab
     tab:SetCustomOnMouseUpHandler(function(_, button, upInside)
         if button ~= "LeftButton" or not upInside then return end
-        if panel:IsShown() then ClosePanel()
-        else
-            if book.CategoryTabSystem then book.CategoryTabSystem:SetTabVisuallySelected(nil) end
-            CompactWindow()
-            panel.tabHeader:Show()
-            panel:Show()
-            tab:SetChecked(true)
-            module:RefreshList()
-        end
+        if panel:IsShown() then ClosePanel() else OpenTrainerPanel() end
     end)
     panel = CreateFrame("Frame", nil, book)
     panel:Hide()
@@ -450,6 +677,10 @@ InstallTab = function()
     panel.info:SetPoint("BOTTOMRIGHT", -LIST_RIGHT, 10)
     panel.info:SetJustifyH("LEFT")
     panel.info:SetTextColor(.8, .7, .5)
+    panel.totalCost = panel:CreateFontString(nil, "OVERLAY", "NumberFontNormalRight")
+    panel.totalCost:SetPoint("BOTTOMRIGHT", -LIST_RIGHT, 32)
+    panel.totalCost:SetJustifyH("RIGHT")
+    panel.totalCost:Hide()
     panel.entries = {}
     panel.viewport = CreateFrame("Frame", nil, panel)
     panel.viewport:SetFrameLevel(panel:GetFrameLevel() + 1)
@@ -509,7 +740,7 @@ InstallTab = function()
 end
 
 module:RegisterEvent("PLAYER_REGEN_ENABLED", function()
-    if not panel or not panel:IsShown() then RestoreWindow() end
+    if not customPageClose and (not panel or not panel:IsShown()) then RestoreSpellbookControls() end
 end)
 module:RegisterEvent("TRAINER_SHOW", function()
     visiting = true
@@ -541,4 +772,37 @@ function module:OnDisable()
     visiting = false
     ClosePanel()
     if tab then tab:Hide() end
+end
+
+
+module:RegisterSlashCommand("classtrainer", function(_, arguments)
+    local command = (arguments or ""):match("^%s*(.-)%s*$"):lower()
+    if command == "reset" then
+        visiting, captureAll = false, false
+        yToolsClassTrainerDB = {spells = {}}
+        if panel and panel:IsShown() then
+            panel.bar:SetValue(0)
+            module:RefreshList()
+        end
+        yTools:Print(L.CLASS_TRAINER_RESET_DONE)
+    elseif command == "" then
+        if OpenTrainerPanel() then return end
+        local util = PlayerSpellsUtil
+        local open = util and (util.OpenToSpellBookTab or util.ToggleSpellBookFrame)
+        if open then open()
+        elseif ToggleSpellBook then ToggleSpellBook(BOOKTYPE_SPELL) end
+        if not OpenTrainerPanel() then
+            C_Timer.After(0, function()
+                if module:IsEnabled() and not OpenTrainerPanel() then
+                    yTools:Print(L.CLASS_TRAINER_OPEN_FAILED)
+                end
+            end)
+        end
+    else
+        yTools:Print(L.CLASS_TRAINER_COMMAND_HELP)
+    end
+end, L.CLASS_TRAINER_COMMAND_HELP)
+
+yTools.commands.classtrainer.allowDisabled = function(arguments)
+    return arguments:match("^%s*(.-)%s*$"):lower() == "reset"
 end
