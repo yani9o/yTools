@@ -6,57 +6,66 @@ Collection of QoL Modules for WoW Forever.
 
 <img width="686" height="547" alt="image" src="https://github.com/user-attachments/assets/77b111cc-4fca-492c-8409-ce18a40beddc" />
 
-Complete List of current Modules (can be individually de-/activated - explanations are in mainmenu):
+Complete list of current yTools modules
+Each module can be enabled or disabled individually. Descriptions are in the main yTools menu.
 
-Actionbars
-- Hide MacroText
-- Hide ActionBarPageIndicator
-- Cast Spells on Key-Release
+Action Bars
+- Hide Macro Text
+- Hide Action Bar Page Indicator
+- Cast Spells on Key Release
 
 Auras
-- Hide BuffList Button
+- Hide Buff List Button
 
 Automation
-- AutoRepair
-- AutoSellJunk
-- Fishing-Helper (double-rightclick to cast fishing with equipped fishingpole + optional audio changes)
+- Auto Repair
+- Auto Sell Junk
+- Auto Quest Turn-In and Accept
+- Fishing Helper (double right-click to fish with an equipped fishing pole; optional audio changes)
+- Learn All (one-click training for class, profession, and weapon trainers; hover for total cost)
 
 Bags
 - Movable Bags
-- Reorganize BagSlots
+- Reorganize Bag Slots
 
 Chat
-- ChatArrowKeys
-- CopyChat (incl. button on top-right of chat)
-- CopyLinks
-
-Tools
-- Class Teacher Spells
-- Macro-Generator (personal, probably no use to you...)
-- Notepad
+- Chat Arrow Keys
+- Copy Chat (includes a button at the top right of chat)
+- Copy Links
 
 Tooltips
-- ItemLevel
-- ItemCount
-- ItemID
-- QuestID (incl. Questwindows, etc.)
-- SpellID
-- TargetTarget
-- UnitID
-- VendorPrice
+- Item Level
+- Item Count (bags and bank)
+- Item IDs
+- Quest IDs
+- Spell IDs
+- Target of Target
+- Unit IDs
+- Vendor Price
 
 UI
-- Always show Infopanel (i.e. Characterstats or Reputationdetails)
-- Characterstats (Sorting/Filtering)
-- Move Framerate to topleft
-- Hide LuaErrors
-- Hide PtrIssueReporter
-- Move Rollframe (probably not needed anymore after blizzard fix, but i'll leave it anyway)
+- Always Show Info Panel (e.g. character stats or reputation details)
+- Character Stats (sorting and filtering)
+- Move Framerate to the Top Left
+- Hide Lua Errors
+- Move Roll Frame
+- Hunter Bar
+- Falcon Tracker (falcon durations and Arcane Shot cooldown)
+- Library Books (map locations and collection status)
+- Leylines (possible locations on zone maps)
+- Reveal Maps (shows unexplored areas with a grey overlay)
 
-UnitFrames
-- Center Target- & Focus-Castbars
-- Hide Hit-Indicator on Portraits
-- Change PlayerBorder (silver, gold and winged variants)
+Unit Frames
+- Center Target and Focus Cast Bars
+- Hide Hit Indicators on Portraits
+- Change Player Border (silver, gold, and winged variants)
+- Target Threat (with optional pet threat)
+
+Utility
+- ClassTrainer (shows learnable spells and total cost; updates when you visit a class trainer)
+- Pet Skills (shows pet abilities and where to learn them)
+- Macro Manager
+- Notepad
 
 
 ## ⚠️ **Information**
